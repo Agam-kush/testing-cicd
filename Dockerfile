@@ -1,20 +1,28 @@
-FROM openjdk:11-jdk
+FROM ubuntu:22.04
+
+# Install necessary packages and dependencies
+RUN apt-get update && apt-get install -y \
+    openjdk-11-jdk \
+    wget \
+    gnupg2 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Add the Jenkins repository key and repository
+RUN wget -O /usr/share/keyrings/jenkins-keyring.asc \
+  https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+
+RUN echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
+  https://pkg.jenkins.io/debian-stable binary/ | tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
 
 # Install Jenkins
-RUN wget -O /usr/local/bin/jenkins.war https://get.jenkins.io/war-stable/latest/jenkins.war
+RUN apt-get update && apt-get install -y jenkins \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create a Jenkins user
-RUN useradd --system --shell /bin/bash jenkins
-
-# Create a directory for Jenkins data
-RUN mkdir -p /var/jenkins_home
-
-# Set ownership of the data directory
-RUN chown -R jenkins:jenkins /var/jenkins_home
-
-# Expose Jenkins port
+# Expose the Jenkins port
 EXPOSE 8080
 
-# Run Jenkins as the Jenkins user
-USER jenkins
-CMD ["java", "-jar", "/usr/local/bin/jenkins.war"]
+# Start Jenkins and keep the container running
+CMD service jenkins start && tail -f /var/log/jenkins/jenkins.log
